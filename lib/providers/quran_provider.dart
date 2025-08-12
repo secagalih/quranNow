@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'dart:convert';
 import '../models/surah.dart';
 import '../models/ayah.dart';
+import '../utils/network_utils.dart';
 import 'translation_provider.dart';
 
 class QuranProvider extends ChangeNotifier {
   static const String _baseUrl = 'https://alquran-api.pages.dev/api/quran';
   
+  late final Dio _dio;
   List<Surah> _surahs = [];
   final Map<int, List<Ayah>> _ayahs = {};
   final Map<int, Map<String, Map<String, String>>> _translations = {};
@@ -17,6 +20,34 @@ class QuranProvider extends ChangeNotifier {
   List<Surah> get surahs => _surahs;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  QuranProvider() {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+      headers: {
+        'User-Agent': 'QuranNow/1.0',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    ));
+    
+    // Add retry interceptor
+    _dio.interceptors.add(
+      RetryInterceptor(
+        dio: _dio,
+        logPrint: print,
+        retries: 3,
+        retryDelays: const [
+          Duration(seconds: 1),
+          Duration(seconds: 2),
+          Duration(seconds: 3),
+        ],
+      ),
+    );
+  }
 
   List<Ayah> getAyahs(int surahNumber) {
     return _ayahs[surahNumber] ?? [];
@@ -35,12 +66,10 @@ class QuranProvider extends ChangeNotifier {
 
     try {
       // Using the new Al-Quran API
-      final response = await http.get(
-        Uri.parse(_baseUrl),
-      );
+      final response = await _dio.get('/');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final List<dynamic> surahsData = data['surahs'] ?? [];
         
         _surahs = surahsData.map((json) => Surah.fromJson(json)).toList();
@@ -48,7 +77,7 @@ class QuranProvider extends ChangeNotifier {
         _error = 'Failed to load surahs';
       }
     } catch (e) {
-      _error = 'Error: $e';
+      _error = NetworkUtils.getErrorMessage(e);
     }
 
     _isLoading = false;
@@ -63,12 +92,10 @@ class QuranProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/surah/$surahNumber'),
-      );
+      final response = await _dio.get('/surah/$surahNumber');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         final List<dynamic> versesData = data['verses'] ?? [];
         
         final ayahs = versesData.map((json) {
@@ -98,7 +125,7 @@ class QuranProvider extends ChangeNotifier {
         _error = 'Failed to load ayahs';
       }
     } catch (e) {
-      _error = 'Error: $e';
+      _error = NetworkUtils.getErrorMessage(e);
     }
 
     _isLoading = false;

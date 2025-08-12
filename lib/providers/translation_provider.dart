@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'dart:convert';
+import '../utils/network_utils.dart';
 
 class TranslationProvider extends ChangeNotifier {
   static const String _selectedLanguageKey = 'selected_language';
   static const String _baseUrl = 'https://alquran-api.pages.dev/api/quran';
+  
+  late final Dio _dio;
   
   final Map<String, String> _availableLanguages = {
     'en': 'English',
@@ -64,6 +68,32 @@ class TranslationProvider extends ChangeNotifier {
   String? get error => _error;
 
   TranslationProvider() {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+      headers: {
+        'User-Agent': 'QuranNow/1.0',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    ));
+    
+    // Add retry interceptor
+    _dio.interceptors.add(
+      RetryInterceptor(
+        dio: _dio,
+        logPrint: print,
+        retries: 3,
+        retryDelays: const [
+          Duration(seconds: 1),
+          Duration(seconds: 2),
+          Duration(seconds: 3),
+        ],
+      ),
+    );
+    
     _loadSelectedLanguage();
   }
 
@@ -93,12 +123,10 @@ class TranslationProvider extends ChangeNotifier {
       // Fetch translations for all available languages
       for (final lang in _availableLanguages.keys) {
         try {
-          final response = await http.get(
-            Uri.parse('$_baseUrl/surah/$surahNumber/$lang'),
-          );
+          final response = await _dio.get('/surah/$surahNumber/$lang');
 
           if (response.statusCode == 200) {
-            final data = json.decode(response.body);
+            final data = response.data;
             final verses = data['verses'] as List<dynamic>?;
             if (verses != null) {
               final ayah = verses.firstWhere(
@@ -119,7 +147,7 @@ class TranslationProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      _error = 'Error fetching translations: $e';
+      _error = NetworkUtils.getErrorMessage(e);
     }
 
     _isLoading = false;
@@ -131,19 +159,17 @@ class TranslationProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
+    
     final Map<String, String> translations = {};
     
     try {
       // Fetch translations for all available languages
       for (final lang in _availableLanguages.keys) {
         try {
-          final response = await http.get(
-            Uri.parse('$_baseUrl/surah/$surahNumber/$lang'),
-          );
+          final response = await _dio.get('/surah/$surahNumber/$lang');
 
           if (response.statusCode == 200) {
-            final data = json.decode(response.body);
+            final data = response.data;
             final verses = data['verses'] as List<dynamic>?;
             if (verses != null && verses.isNotEmpty) {
               final Map<String, String> ayahTranslations = {};
@@ -165,7 +191,7 @@ class TranslationProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      _error = 'Error fetching translations: $e';
+      _error = NetworkUtils.getErrorMessage(e);
     }
 
     _isLoading = false;
