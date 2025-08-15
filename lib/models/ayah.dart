@@ -51,6 +51,37 @@ class Ayah {
     );
   }
 
+  factory Ayah.fromEquranJson(Map<String, dynamic> json, int surahNumber) {
+    // EQuran.id API v2 Ayah fields include: nomorAyat, teksArab, teksLatin, teksIndonesia
+    final arabicText = (json['teksArab'] ?? '').toString();
+    final latinText = (json['teksLatin'] ?? '').toString();
+    final indonesianText = (json['teksIndonesia'] ?? '').toString();
+    final number = json['nomorAyat'] is int ? json['nomorAyat'] as int : int.tryParse('${json['nomorAyat']}') ?? 0;
+    
+    // Initialize translations map
+    final Map<String, String> translations = {};
+    if (latinText.isNotEmpty) {
+      translations['latin'] = latinText;
+    }
+    if (indonesianText.isNotEmpty) {
+      translations['id'] = indonesianText;
+    }
+    
+    return Ayah(
+      number: number,
+      surahNumber: surahNumber,
+      text: arabicText,
+      textArabic: arabicText,
+      translation: latinText,
+      translations: translations,
+      audioUrl: '', // Audio URL can be constructed if needed
+      juz: json['juz'] ?? 0,
+      page: json['halaman'] ?? 0,
+      ruku: json['ruku'] ?? 0,
+      hizbQuarter: json['hizb'] ?? 0,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'number': number,

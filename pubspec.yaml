@@ -106,15 +106,15 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Uthmanic
-  #     fonts:
-  #       - asset: assets/fonts/UthmanicHafs1Ver18.ttf
-  #   - family: Scheherazade
-  #     fonts:
-  #       - asset: assets/fonts/Scheherazade-Regular.ttf
-  #       - asset: assets/fonts/Scheherazade-Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: Uthmanic
+      fonts:
+        - asset: assets/fonts/UthmanicHafs1Ver18.ttf
+    - family: Scheherazade
+      fonts:
+        - asset: assets/fonts/Scheherazade-Regular.ttf
+        - asset: assets/fonts/Scheherazade-Bold.ttf
+          weight: 700
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

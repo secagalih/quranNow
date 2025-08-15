@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 
-import 'providers/quran_provider.dart';
+import 'providers/quran_data_provider.dart';
 import 'providers/audio_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/translation_provider.dart';
@@ -35,7 +35,7 @@ class QuranApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => TranslationProvider()),
-        ChangeNotifierProvider(create: (_) => QuranProvider()),
+        ChangeNotifierProvider(create: (_) => QuranDataProvider()),
         ChangeNotifierProvider(create: (_) => AudioProvider()),
       ],
       child: Consumer<ThemeProvider>(

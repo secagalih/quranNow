@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../providers/quran_provider.dart';
+import '../providers/quran_data_provider.dart';
 import '../constants/app_colors.dart';
 import '../widgets/surah_card.dart';
 import '../widgets/loading_widget.dart';
@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<QuranProvider>().loadSurahs();
+      context.read<QuranDataProvider>().loadSurahs();
     });
   }
 
@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildAppBar(),
               Expanded(
-                child: Consumer<QuranProvider>(
+                child: Consumer<QuranDataProvider>(
                   builder: (context, quranProvider, child) {
                     if (quranProvider.isLoading) {
                       return const LoadingWidget();
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSurahList(QuranProvider quranProvider) {
+  Widget _buildSurahList(QuranDataProvider quranProvider) {
     return AnimationLimiter(
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),

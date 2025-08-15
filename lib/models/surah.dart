@@ -34,6 +34,25 @@ class Surah {
     );
   }
 
+  factory Surah.fromEquranJson(Map<String, dynamic> json) {
+    // EQuran.id API v2 fields:
+    // nomor, nama, namaLatin, jumlahAyat, tempatTurun, arti, deskripsi
+    final arabicName = (json['nama'] ?? '').toString();
+    final latinName = (json['namaLatin'] ?? '').toString();
+    final meaning = (json['arti'] ?? '').toString();
+    final description = (json['deskripsi'] ?? '').toString();
+    
+    return Surah(
+      number: json['nomor'] is int ? json['nomor'] as int : int.tryParse('${json['nomor']}') ?? 0,
+      name: arabicName,
+      nameArabic: arabicName,
+      nameEnglish: latinName,
+      revelationType: (json['tempatTurun'] ?? '').toString(),
+      numberOfAyahs: json['jumlahAyat'] is int ? json['jumlahAyat'] as int : int.tryParse('${json['jumlahAyat']}') ?? 0,
+      description: meaning.isNotEmpty ? meaning : description,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'number': number,

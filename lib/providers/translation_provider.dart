@@ -123,7 +123,7 @@ class TranslationProvider extends ChangeNotifier {
       // Fetch translations for all available languages
       for (final lang in _availableLanguages.keys) {
         try {
-          final response = await _dio.get('/surah/$surahNumber/$lang');
+          final response = await _dio.get('/surah/$surahNumber?lang=$lang');
 
           if (response.statusCode == 200) {
             final data = response.data;
@@ -166,7 +166,7 @@ class TranslationProvider extends ChangeNotifier {
       // Fetch translations for all available languages
       for (final lang in _availableLanguages.keys) {
         try {
-          final response = await _dio.get('/surah/$surahNumber/$lang');
+          final response = await _dio.get('/surah/$surahNumber?lang=$lang');
 
           if (response.statusCode == 200) {
             final data = response.data;
