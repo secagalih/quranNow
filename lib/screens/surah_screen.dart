@@ -155,6 +155,82 @@ class _SurahScreenState extends State<SurahScreen> {
                              constraints: const BoxConstraints(),
                            ),
                          ),
+                         // Language selector positioned on the right
+                         Positioned(
+                           right: 0,
+                           top: 13,
+                           child: Consumer<TranslationProvider>(
+                             builder: (context, translationProvider, child) {
+                               return PopupMenuButton<String>(
+                                 padding: EdgeInsets.zero,
+                                 constraints: const BoxConstraints(),
+                                 onSelected: (languageCode) {
+                                   translationProvider.setLanguage(languageCode);
+                                   // Reload ayahs with new translation
+                                   quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
+                                 },
+                                 itemBuilder: (context) {
+                                   return translationProvider.availableLanguages.entries.map((entry) {
+                                     final isSelected = translationProvider.selectedLanguage == entry.key;
+                                     return PopupMenuItem<String>(
+                                       value: entry.key,
+                                       child: Row(
+                                         children: [
+                                           Text(
+                                             entry.value,
+                                             style: TextStyle(
+                                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                             ),
+                                           ),
+                                           if (isSelected) ...[
+                                             const Spacer(),
+                                             const Icon(Icons.check, size: 16),
+                                           ],
+                                         ],
+                                       ),
+                                     );
+                                   }).toList();
+                                 },
+                                 child: Container(
+                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                   decoration: BoxDecoration(
+                                     color: Colors.white.withValues(alpha: 0.2),
+                                     borderRadius: BorderRadius.circular(12),
+                                     border: Border.all(
+                                       color: Colors.white.withValues(alpha: 0.3),
+                                       width: 1,
+                                     ),
+                                   ),
+                                   child: Row(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+                                       const Icon(
+                                         Icons.language,
+                                         color: Colors.white,
+                                         size: 14,
+                                       ),
+                                       const SizedBox(width: 4),
+                                       Text(
+                                         translationProvider.availableLanguages[translationProvider.selectedLanguage] ?? 'EN',
+                                         style: const TextStyle(
+                                           color: Colors.white,
+                                           fontSize: 12,
+                                           fontWeight: FontWeight.w600,
+                                         ),
+                                       ),
+                                       const SizedBox(width: 2),
+                                       const Icon(
+                                         Icons.arrow_drop_down,
+                                         color: Colors.white,
+                                         size: 16,
+                                       ),
+                                     ],
+                                   ),
+                                 ),
+                               );
+                             },
+                           ),
+                         ),
                        ],
                      ),
                     const SizedBox(height: 4),
