@@ -36,29 +36,6 @@ class _SurahScreenState extends State<SurahScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Consumer<QuranDataProvider>(
-          builder: (context, quranProvider, child) {
-            final surah = quranProvider.surahs.firstWhere(
-              (s) => s.number == widget.surahId,
-              orElse: () => Surah(
-                number: widget.surahId,
-                name: 'Surah $widget.surahId',
-                nameArabic: '',
-                nameEnglish: '',
-                revelationType: '',
-                numberOfAyahs: 0,
-                description: '',
-              ),
-            );
-            return Text(surah.nameArabic);
-          },
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-      ),
       body: Consumer2<QuranDataProvider, TranslationProvider>(
         builder: (context, quranProvider, translationProvider, child) {
           if (quranProvider.isLoading) {
@@ -110,7 +87,7 @@ class _SurahScreenState extends State<SurahScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
         boxShadow: [
@@ -123,38 +100,76 @@ class _SurahScreenState extends State<SurahScreen> {
       ),
       child: Column(
         children: [
-          // Arabic name
-          Text(
-            surah.nameArabic,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontFamily: 'Uthmanic',
-            ),
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.rtl,
-          ),
-          const SizedBox(height: 8),
-          // Latin name
-          Text(
-            surah.nameEnglish,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              fontStyle: FontStyle.italic,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          // Surah details
+          // Back button and content row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildSurahDetail('Ayat', '${surah.numberOfAyahs}'),
-              _buildSurahDetail('Type', surah.revelationType),
-              _buildSurahDetail('Number', '${surah.number}'),
+
+              Expanded(
+                child: Column(
+                  children: [
+                                         // Arabic name
+                     Stack(
+                       children: [
+                         // Centered surah names
+                         Center(
+                           child: Column(
+                             children: [
+                               Text(
+                                 surah.nameArabic,
+                                 style: const TextStyle(
+                                   fontSize: 18,
+                                   fontWeight: FontWeight.bold,
+                                   color: Colors.white,
+                                   fontFamily: 'Uthmanic',
+                                 ),
+                                 textAlign: TextAlign.center,
+                                 textDirection: TextDirection.rtl,
+                               ),
+                               const SizedBox(height: 2),
+                               // Latin name
+                               Text(
+                                 surah.nameEnglish,
+                                 style: const TextStyle(
+                                   fontSize: 11,
+                                   fontWeight: FontWeight.w600,
+                                   color: Colors.white,
+                                   fontStyle: FontStyle.italic,
+                                 ),
+                                 textAlign: TextAlign.center,
+                               ),
+                             ],
+                           ),
+                         ),
+                         // Back button positioned on the left
+                         Positioned(
+                           left: 0,
+                           top: 0,
+                           child: IconButton(
+                             onPressed: () => context.pop(),
+                             icon: const Icon(
+                               Icons.arrow_back_ios,
+                               color: Colors.white,
+                               size: 16,
+                             ),
+                             padding: EdgeInsets.zero,
+                             constraints: const BoxConstraints(),
+                           ),
+                         ),
+                       ],
+                     ),
+                    const SizedBox(height: 4),
+                    // Surah details
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildSurahDetail('Ayat', '${surah.numberOfAyahs}'),
+                        _buildSurahDetail('Type', surah.revelationType),
+                        _buildSurahDetail('Number', '${surah.number}'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -298,7 +313,7 @@ class _SurahScreenState extends State<SurahScreen> {
               final selectedLang = translationProvider.selectedLanguage;
               final translations = quranProvider.getTranslations(widget.surahId, ayah.number);
               final translation = translations[selectedLang] ?? '';
-              
+
               if (translation.isNotEmpty) {
                 return Text(
                   translation,
@@ -318,6 +333,4 @@ class _SurahScreenState extends State<SurahScreen> {
       ),
     );
   }
-
-  
 }
