@@ -5,6 +5,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 import '../providers/quran_data_provider.dart';
 import '../providers/translation_provider.dart';
+import '../providers/audio_provider.dart';
 import '../models/surah.dart';
 import '../constants/app_colors.dart';
 import '../widgets/loading_widget.dart';
@@ -103,136 +104,136 @@ class _SurahScreenState extends State<SurahScreen> {
           // Back button and content row
           Row(
             children: [
-
               Expanded(
                 child: Column(
                   children: [
-                                         // Arabic name
-                     Stack(
-                       children: [
-                         // Centered surah names
-                         Center(
-                           child: Column(
-                             children: [
-                               Text(
-                                 surah.nameArabic,
-                                 style: const TextStyle(
-                                   fontSize: 18,
-                                   fontWeight: FontWeight.bold,
-                                   color: Colors.white,
-                                   fontFamily: 'Uthmanic',
-                                 ),
-                                 textAlign: TextAlign.center,
-                                 textDirection: TextDirection.rtl,
-                               ),
-                               const SizedBox(height: 2),
-                               // Latin name
-                               Text(
-                                 surah.nameEnglish,
-                                 style: const TextStyle(
-                                   fontSize: 11,
-                                   fontWeight: FontWeight.w600,
-                                   color: Colors.white,
-                                   fontStyle: FontStyle.italic,
-                                 ),
-                                 textAlign: TextAlign.center,
-                               ),
-                             ],
-                           ),
-                         ),
-                         // Back button positioned on the left
-                         Positioned(
-                           left: 0,
-                           top: 0,
-                           child: IconButton(
-                             onPressed: () => context.pop(),
-                             icon: const Icon(
-                               Icons.arrow_back_ios,
-                               color: Colors.white,
-                               size: 16,
-                             ),
-                             padding: EdgeInsets.zero,
-                             constraints: const BoxConstraints(),
-                           ),
-                         ),
-                         // Language selector positioned on the right
-                         Positioned(
-                           right: 0,
-                           top: 13,
-                           child: Consumer<TranslationProvider>(
-                             builder: (context, translationProvider, child) {
-                               return PopupMenuButton<String>(
-                                 padding: EdgeInsets.zero,
-                                 constraints: const BoxConstraints(),
-                                 onSelected: (languageCode) {
-                                   translationProvider.setLanguage(languageCode);
-                                   // Reload ayahs with new translation
-                                   quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
-                                 },
-                                 itemBuilder: (context) {
-                                   return translationProvider.availableLanguages.entries.map((entry) {
-                                     final isSelected = translationProvider.selectedLanguage == entry.key;
-                                     return PopupMenuItem<String>(
-                                       value: entry.key,
-                                       child: Row(
-                                         children: [
-                                           Text(
-                                             entry.value,
-                                             style: TextStyle(
-                                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                             ),
-                                           ),
-                                           if (isSelected) ...[
-                                             const Spacer(),
-                                             const Icon(Icons.check, size: 16),
-                                           ],
-                                         ],
-                                       ),
-                                     );
-                                   }).toList();
-                                 },
-                                 child: Container(
-                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                   decoration: BoxDecoration(
-                                     color: Colors.white.withValues(alpha: 0.2),
-                                     borderRadius: BorderRadius.circular(12),
-                                     border: Border.all(
-                                       color: Colors.white.withValues(alpha: 0.3),
-                                       width: 1,
-                                     ),
-                                   ),
-                                   child: Row(
-                                     mainAxisSize: MainAxisSize.min,
-                                     children: [
-                                       const Icon(
-                                         Icons.language,
-                                         color: Colors.white,
-                                         size: 14,
-                                       ),
-                                       const SizedBox(width: 4),
-                                       Text(
-                                         translationProvider.availableLanguages[translationProvider.selectedLanguage] ?? 'EN',
-                                         style: const TextStyle(
-                                           color: Colors.white,
-                                           fontSize: 12,
-                                           fontWeight: FontWeight.w600,
-                                         ),
-                                       ),
-                                       const SizedBox(width: 2),
-                                       const Icon(
-                                         Icons.arrow_drop_down,
-                                         color: Colors.white,
-                                         size: 16,
-                                       ),
-                                     ],
-                                   ),
-                                 ),
-                               );
-                             },
-                           ),
-                         ),
-                       ],
-                     ),
+                    // Arabic name
+                    Stack(
+                      children: [
+                        // Centered surah names
+                        Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                surah.nameArabic,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontFamily: 'Uthmanic',
+                                ),
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                              ),
+                              const SizedBox(height: 2),
+                              // Latin name
+                              Text(
+                                surah.nameEnglish,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Back button positioned on the left
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: IconButton(
+                            onPressed: () => context.pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_ios,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+
+                        // Language selector positioned on the right
+                        Positioned(
+                          right: 0,
+                          top: 13,
+                          child: Consumer<TranslationProvider>(
+                            builder: (context, translationProvider, child) {
+                              return PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onSelected: (languageCode) {
+                                  translationProvider.setLanguage(languageCode);
+                                  // Reload ayahs with new translation
+                                  quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
+                                },
+                                itemBuilder: (context) {
+                                  return translationProvider.availableLanguages.entries.map((entry) {
+                                    final isSelected = translationProvider.selectedLanguage == entry.key;
+                                    return PopupMenuItem<String>(
+                                      value: entry.key,
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            entry.value,
+                                            style: TextStyle(
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                            ),
+                                          ),
+                                          if (isSelected) ...[
+                                            const Spacer(),
+                                            const Icon(Icons.check, size: 16),
+                                          ],
+                                        ],
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.language,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        translationProvider.availableLanguages[translationProvider.selectedLanguage] ?? 'EN',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      const Icon(
+                                        Icons.arrow_drop_down,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     // Surah details
                     Row(
@@ -333,6 +334,129 @@ class _SurahScreenState extends State<SurahScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+        // Audio controls for individual ayah
+        const SizedBox(width: 8),
+        Consumer<AudioProvider>(
+          builder: (context, audioProvider, child) {
+            final ayahKey = '${widget.surahId}_$ayahNumber';
+            final selectedQari = audioProvider.getQariForAyah(ayahKey);
+            final qariName = audioProvider.availableQari[selectedQari]!;
+            // Use equran.id API for per-ayah audio
+            final audioUrl =
+                'https://equran.nos.wjv-1.neo.id/audio-partial/$qariName/${widget.surahId.toString().padLeft(3, '0')}${ayahNumber.toString().padLeft(3, '0')}.mp3';
+            final isCurrentAyahPlaying = audioProvider.currentAyahKey == ayahKey;
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: audioProvider.isLoading || audioProvider.isProcessing
+                      ? null // Disable button during loading or processing
+                      : () {
+                          if (isCurrentAyahPlaying && audioProvider.isPlaying) {
+                            audioProvider.pauseAudio();
+                          } else {
+                            audioProvider.playAudio(audioUrl, ayahKey);
+                          }
+                        },
+                  icon: isCurrentAyahPlaying && audioProvider.isLoading
+                      ? SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        )
+                      : Icon(
+                          isCurrentAyahPlaying && audioProvider.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                          color: AppColors.primary,
+                          size: 40,
+                        ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  enabled: !(isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing)), // Disable when playing, loading, or processing
+                  onSelected: (qariCode) {
+                    audioProvider.setQariForAyah(ayahKey, qariCode);
+                  },
+                  itemBuilder: (context) {
+                    return audioProvider.availableQari.entries.map((entry) {
+                      final isSelected = selectedQari == entry.key;
+                      return PopupMenuItem<String>(
+                        value: entry.key,
+                        child: Row(
+                          children: [
+                            Text(
+                              entry.value,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const Spacer(),
+                              const Icon(Icons.check, size: 16),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing))
+                          ? AppColors.primary.withValues(alpha: 0.05) // Dimmed when playing, loading, or processing
+                          : AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing))
+                            ? AppColors.primary.withValues(alpha: 0.1) // Dimmed border when playing, loading, or processing
+                            : AppColors.primary.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.volume_up,
+                          color: (isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing))
+                              ? AppColors.primary.withValues(alpha: 0.5) // Dimmed icon when playing, loading, or processing
+                              : AppColors.primary,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          audioProvider.availableQari[selectedQari]?.split('-').first ?? 'Abdullah',
+                          style: TextStyle(
+                            color: (isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing))
+                                ? AppColors.primary.withValues(alpha: 0.5) // Dimmed text when playing, loading, or processing
+                                : AppColors.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: (isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing))
+                              ? AppColors.primary.withValues(alpha: 0.5) // Dimmed arrow when playing, loading, or processing
+                              : AppColors.primary,
+                          size: 12,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         const Spacer(),
         IconButton(
