@@ -7,6 +7,7 @@ import 'dart:async';
 import '../providers/quran_data_provider.dart';
 import '../providers/translation_provider.dart';
 import '../providers/audio_provider.dart';
+import '../providers/bookmark_provider.dart';
 import '../models/surah.dart';
 import '../constants/app_colors.dart';
 import '../services/toast_service.dart';
@@ -381,26 +382,28 @@ class _SurahScreenState extends State<SurahScreen> {
   }
 
   Widget _buildAyahHeader(int ayahNumber) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            '$ayahNumber',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+    return Consumer<QuranDataProvider>(
+      builder: (context, quranProvider, child) {
+        return Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$ayahNumber',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-        ),
-        // Audio controls for individual ayah
-        const SizedBox(width: 8),
-        Consumer<AudioProvider>(
-          builder: (context, audioProvider, child) {
+            // Audio controls for individual ayah
+            const SizedBox(width: 8),
+            Consumer<AudioProvider>(
+              builder: (context, audioProvider, child) {
             final ayahKey = '${widget.surahId}_$ayahNumber';
             final selectedQari = audioProvider.getQariForAyah(ayahKey);
             final qariName = audioProvider.availableQari[selectedQari]!;
@@ -518,15 +521,43 @@ class _SurahScreenState extends State<SurahScreen> {
                 ),
               ],
             );
-          },
-        ),
-        const Spacer(),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.bookmark_border),
-          color: AppColors.primary,
-        ),
-      ],
+              },
+            ),
+            const Spacer(),
+            Consumer<BookmarkProvider>(
+              builder: (context, bookmarkProvider, child) {
+            final isBookmarked = bookmarkProvider.isBookmarked(widget.surahId, ayahNumber);
+            return IconButton(
+              onPressed: () {
+                final surah = quranProvider.surahs.firstWhere(
+                  (s) => s.number == widget.surahId,
+                  orElse: () => Surah(
+                    number: widget.surahId,
+                    name: 'Surah $widget.surahId',
+                    nameArabic: '',
+                    nameEnglish: '',
+                    revelationType: '',
+                    numberOfAyahs: 0,
+                    description: '',
+                  ),
+                );
+                bookmarkProvider.toggleBookmark(
+                  widget.surahId,
+                  ayahNumber,
+                  surah.nameEnglish,
+                  surah.nameArabic,
+                );
+              },
+              icon: Icon(
+                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                color: isBookmarked ? AppColors.primary : AppColors.primary,
+              ),
+            );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

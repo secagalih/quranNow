@@ -7,6 +7,7 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'dart:async';
 
 import '../providers/quran_data_provider.dart';
+import '../providers/bookmark_provider.dart';
 import '../constants/app_colors.dart';
 import '../widgets/surah_card.dart';
 import '../widgets/loading_widget.dart';
@@ -22,14 +23,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final RefreshController _refreshController = RefreshController(initialRefresh: false);
   bool _isOnline = true;
   Timer? _networkCheckTimer;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Clear any previous errors when returning to home screen
       context.read<QuranDataProvider>().clearAllErrors();
@@ -53,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _refreshController.dispose();
     _networkCheckTimer?.cancel();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -94,26 +98,46 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildAppBar(),
               Expanded(
-                child: Consumer<QuranDataProvider>(
-                  builder: (context, quranProvider, child) {
-                    if (quranProvider.isLoading) {
-                      return const LoadingWidget();
-                    }
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // All Surahs Tab
+                    Consumer<QuranDataProvider>(
+                      builder: (context, quranProvider, child) {
+                        if (quranProvider.isLoading) {
+                          return const LoadingWidget();
+                        }
 
-                    if (quranProvider.error != null) {
-                      final errorInfo = ErrorMessageService.getErrorInfo(quranProvider.error!, context: 'home');
-                      return custom_error.CustomErrorWidget(
-                        title: errorInfo.title,
-                        message: errorInfo.message,
-                        subtitle: errorInfo.subtitle,
-                        icon: errorInfo.icon,
-                        retryButtonText: errorInfo.retryText,
-                        onRetry: () => quranProvider.loadSurahs(),
-                      );
-                    }
+                        if (quranProvider.error != null) {
+                          final errorInfo = ErrorMessageService.getErrorInfo(quranProvider.error!, context: 'home');
+                          return custom_error.CustomErrorWidget(
+                            title: errorInfo.title,
+                            message: errorInfo.message,
+                            subtitle: errorInfo.subtitle,
+                            icon: errorInfo.icon,
+                            retryButtonText: errorInfo.retryText,
+                            onRetry: () => quranProvider.loadSurahs(),
+                          );
+                        }
 
-                    return _buildSurahList(quranProvider);
-                  },
+                        return _buildSurahList(quranProvider);
+                      },
+                    ),
+                    // Bookmarked Tab
+                    Consumer2<QuranDataProvider, BookmarkProvider>(
+                      builder: (context, quranProvider, bookmarkProvider, child) {
+                        if (bookmarkProvider.isLoading) {
+                          return const LoadingWidget();
+                        }
+
+                        if (!bookmarkProvider.hasBookmarks()) {
+                          return _buildEmptyBookmarks();
+                        }
+
+                        return _buildBookmarkedSurahs(quranProvider, bookmarkProvider);
+                      },
+                    ),
+                  ],
                 ),
               ),
               // Network status indicator at bottom
@@ -127,6 +151,96 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+
+  Widget _buildEmptyBookmarks() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(
+                Icons.bookmark_border,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Bookmarked Surahs',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Start bookmarking your favorite surahs and ayahs to see them here.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookmarkedSurahs(QuranDataProvider quranProvider, BookmarkProvider bookmarkProvider) {
+    final bookmarks = bookmarkProvider.getBookmarksByDate();
+    final bookmarkedSurahs = <int>{};
+    
+    // Get unique surah numbers from bookmarks
+    for (final bookmark in bookmarks) {
+      bookmarkedSurahs.add(bookmark.surahNumber);
+    }
+
+    // Filter surahs that have bookmarks
+    final surahsWithBookmarks = quranProvider.surahs
+        .where((surah) => bookmarkedSurahs.contains(surah.number))
+        .toList();
+
+    if (surahsWithBookmarks.isEmpty) {
+      return _buildEmptyBookmarks();
+    }
+
+    return AnimationLimiter(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: surahsWithBookmarks.length,
+        itemBuilder: (context, index) {
+          final surah = surahsWithBookmarks[index];
+          final bookmarkCount = bookmarkProvider.getBookmarkCountForSurah(surah.number);
+          
+          return AnimationConfiguration.staggeredList(
+            position: index,
+            duration: const Duration(milliseconds: 375),
+            child: SlideAnimation(
+              verticalOffset: 50.0,
+              child: FadeInAnimation(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: SurahCard(
+                    surah: surah,
+                    onTap: () => context.push('/surah/${surah.number}'),
+                    bookmarkCount: bookmarkCount,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildNetworkStatusIndicator() {
     return Container(
@@ -193,52 +307,96 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              FontAwesomeIcons.bookQuran,
-              color: Colors.white,
-              size: 24,
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  FontAwesomeIcons.bookQuran,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'القرآن الكريم',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      'The Holy Quran',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Settings button
+              IconButton(
+                onPressed: () => context.push('/settings'),
+                icon: const Icon(
+                  Icons.settings,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Tab bar
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              width: 1,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'القرآن الكريم',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
-                Text(
-                  'The Holy Quran',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Settings button
-          IconButton(
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(
-              Icons.settings,
+          child: TabBar(
+            controller: _tabController,
+            indicator: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
               color: AppColors.primary,
             ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: Colors.white,
+            unselectedLabelColor: AppColors.textSecondary,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.list, size: 20),
+                text: 'All Surahs',
+              ),
+              Tab(
+                icon: Icon(Icons.bookmark, size: 20),
+                text: 'Bookmarked',
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

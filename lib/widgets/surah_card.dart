@@ -5,11 +5,13 @@ import '../constants/app_colors.dart';
 class SurahCard extends StatelessWidget {
   final Surah surah;
   final VoidCallback onTap;
+  final int? bookmarkCount;
 
   const SurahCard({
     super.key,
     required this.surah,
     required this.onTap,
+    this.bookmarkCount,
   });
 
   @override
@@ -119,6 +121,37 @@ class SurahCard extends StatelessWidget {
             color: AppColors.textLight,
           ),
         ),
+        if (bookmarkCount != null && bookmarkCount! > 0) ...[
+          const SizedBox(width: 8),
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: AppColors.textLight,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.bookmark,
+                size: 12,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                '$bookmarkCount',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

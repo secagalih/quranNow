@@ -7,6 +7,7 @@ import 'providers/quran_data_provider.dart';
 import 'providers/audio_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/translation_provider.dart';
+import 'providers/bookmark_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/surah_screen.dart';
 import 'screens/ayah_screen.dart';
@@ -37,6 +38,7 @@ class QuranApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TranslationProvider()),
         ChangeNotifierProvider(create: (_) => QuranDataProvider()),
         ChangeNotifierProvider(create: (_) => AudioProvider()),
+        ChangeNotifierProvider(create: (_) => BookmarkProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
