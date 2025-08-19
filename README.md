@@ -16,6 +16,10 @@ A beautiful and modern Flutter application for reading the Holy Quran with featu
 - 📤 **Share**: Share verses with friends and family
 - ⚙️ **Settings**: Customize font size, audio quality, and translation language
 - 🎨 **Modern UI**: Beautiful animations and smooth transitions
+- 📱 **Offline Mode**: Read Quran without internet connection
+- 💾 **Smart Caching**: Automatic caching of surahs, ayahs, and translations
+- 🔄 **Error Handling**: Graceful error handling with toast notifications
+- 🗂️ **Cache Management**: Clear cache and manage offline data
 
 ## 🚀 Getting Started
 
@@ -77,16 +81,55 @@ lib/
 
 ## 📦 Dependencies
 
-- **http**: For API calls to fetch Quran data
+- **dio**: HTTP client with retry logic for API calls
 - **provider**: State management
 - **go_router**: Navigation
-- **shared_preferences**: Local storage
+- **shared_preferences**: Local storage for offline data
 - **audioplayers**: Audio playback
+- **fluttertoast**: Toast notifications for error handling
 - **cached_network_image**: Image caching
 - **pull_to_refresh**: Pull to refresh functionality
 - **flutter_staggered_animations**: Beautiful animations
 - **font_awesome_flutter**: Icons
 - **flutter_launcher_icons**: App icon generation
+
+## 📱 Offline Mode
+
+QuranNow includes comprehensive offline functionality that allows you to read the Quran without an internet connection.
+
+### How Offline Mode Works
+
+1. **First Launch**: When you first open the app with internet, it automatically downloads and caches:
+   - Complete list of all 114 surahs
+   - Arabic text and Latin transliteration for all ayahs
+   - Translations in your selected languages
+
+2. **Offline Usage**: When internet is unavailable:
+   - App automatically detects offline mode
+   - Shows "OFFLINE" indicator in the surah header
+   - Displays all cached surahs and ayahs
+   - Shows toast notification about offline mode
+
+3. **Smart Error Handling**:
+   - Network errors show user-friendly toast notifications
+   - Audio playback errors are handled gracefully
+   - Loading errors automatically fall back to cached data
+   - No app crashes due to network issues
+
+4. **Cache Management**:
+   - View offline mode status in Settings
+   - Clear all cached data if needed
+   - Cache is automatically updated when online
+   - Storage information available in settings
+
+### Offline Features
+- ✅ Read all cached surahs and ayahs
+- ✅ View Arabic text and transliteration
+- ✅ Access cached translations
+- ✅ Navigate between surahs
+- ✅ View surah information
+- ❌ Audio playback (requires internet)
+- ❌ Download new translations (requires internet)
 
 ## 🌐 API
 

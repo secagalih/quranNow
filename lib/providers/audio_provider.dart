@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../services/toast_service.dart';
 
 class AudioProvider extends ChangeNotifier {
   AudioPlayer? _audioPlayer;
@@ -136,7 +137,17 @@ class AudioProvider extends ChangeNotifier {
       _currentAyahKey = null;
       _isProcessing = false;
       notifyListeners();
-      rethrow;
+      
+      // Show toast error
+      String errorMessage = 'Failed to play audio';
+      if (e.toString().contains('SocketException') || e.toString().contains('Network')) {
+        errorMessage = 'Network error: Please check your internet connection';
+      } else if (e.toString().contains('404')) {
+        errorMessage = 'Audio file not found';
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = 'Audio loading timeout';
+      }
+      ToastService.showAudioError(errorMessage);
     }
   }
 
@@ -154,6 +165,7 @@ class AudioProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Pause audio error: $e');
+      ToastService.showAudioError('Failed to pause audio');
     } finally {
       _isProcessing = false;
     }
@@ -172,6 +184,7 @@ class AudioProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Stop audio error: $e');
+      ToastService.showAudioError('Failed to stop audio');
     }
   }
 

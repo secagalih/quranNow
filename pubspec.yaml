@@ -51,6 +51,9 @@ dependencies:
   # Audio player for Quran recitation
   audioplayers: ^5.2.1
   
+  # Toast notifications
+  fluttertoast: ^8.2.4
+  
   # Cached network image
   cached_network_image: ^3.3.0
   

@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'dart:async';
 
 import '../providers/quran_data_provider.dart';
 import '../providers/translation_provider.dart';
 import '../providers/audio_provider.dart';
 import '../models/surah.dart';
 import '../constants/app_colors.dart';
+import '../services/toast_service.dart';
+import '../services/error_message_service.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart' as custom_error;
+import '../utils/network_utils.dart';
 
 class SurahScreen extends StatefulWidget {
   final int surahId;
@@ -24,6 +28,9 @@ class SurahScreen extends StatefulWidget {
 }
 
 class _SurahScreenState extends State<SurahScreen> {
+  bool _isOnline = true;
+  Timer? _networkCheckTimer;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +39,34 @@ class _SurahScreenState extends State<SurahScreen> {
       final translationProvider = context.read<TranslationProvider>();
       quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
     });
+    _startNetworkMonitoring();
+  }
+
+  @override
+  void dispose() {
+    _networkCheckTimer?.cancel();
+    // Clear the error for this surah when leaving the screen
+    context.read<QuranDataProvider>().clearSurahError(widget.surahId);
+    super.dispose();
+  }
+
+  void _startNetworkMonitoring() {
+    // Check network status immediately
+    _checkNetworkStatus();
+    
+    // Set up periodic network checking
+    _networkCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _checkNetworkStatus();
+    });
+  }
+
+  Future<void> _checkNetworkStatus() async {
+    final hasInternet = await NetworkUtils.hasInternetConnection();
+    if (mounted && _isOnline != hasInternet) {
+      setState(() {
+        _isOnline = hasInternet;
+      });
+    }
   }
 
   @override
@@ -43,19 +78,44 @@ class _SurahScreenState extends State<SurahScreen> {
             return const LoadingWidget();
           }
 
-          if (quranProvider.error != null) {
+          final surahError = quranProvider.getSurahError(widget.surahId);
+          if (surahError != null) {
+            final errorInfo = ErrorMessageService.getErrorInfo(surahError, context: 'surah');
             return custom_error.CustomErrorWidget(
-              message: quranProvider.error!,
+              title: errorInfo.title,
+              message: errorInfo.message,
+              subtitle: errorInfo.subtitle,
+              icon: errorInfo.icon,
+              retryButtonText: errorInfo.retryText,
               onRetry: () {
                 quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
               },
+              onSecondaryAction: errorInfo.showGoHome ? () {
+                context.pop();
+              } : null,
+              secondaryActionText: errorInfo.showGoHome ? 'Go Back' : null,
             );
           }
 
           final ayahs = quranProvider.getAyahs(widget.surahId);
           if (ayahs.isEmpty) {
-            return const Center(
-              child: Text('No verses found'),
+            final errorInfo = ErrorMessageService.getErrorInfo(
+              'No offline data available for this surah. You need to load this surah while online to cache it for offline reading.',
+              context: 'surah'
+            );
+            return custom_error.CustomErrorWidget(
+              title: errorInfo.title,
+              message: errorInfo.message,
+              subtitle: errorInfo.subtitle,
+              icon: errorInfo.icon,
+              retryButtonText: errorInfo.retryText,
+              onRetry: () {
+                quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
+              },
+              onSecondaryAction: () {
+                context.pop();
+              },
+              secondaryActionText: 'Go Back',
             );
           }
 
@@ -65,6 +125,8 @@ class _SurahScreenState extends State<SurahScreen> {
               Expanded(
                 child: _buildAyahList(ayahs, quranProvider, translationProvider),
               ),
+              // Network status indicator at bottom
+              _buildNetworkStatusIndicator(),
             ],
           );
         },
@@ -524,6 +586,71 @@ class _SurahScreenState extends State<SurahScreen> {
                       ),
                   textAlign: TextAlign.left,
                   textDirection: TextDirection.ltr,
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNetworkStatusIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _isOnline ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+        border: Border(
+          top: BorderSide(
+            color: _isOnline ? Colors.green.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isOnline ? Icons.wifi : Icons.wifi_off,
+            color: _isOnline ? Colors.green : Colors.orange,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isOnline ? 'Online' : 'Offline',
+            style: TextStyle(
+              color: _isOnline ? Colors.green.shade700 : Colors.orange.shade700,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Spacer(),
+          Consumer<QuranDataProvider>(
+            builder: (context, quranProvider, child) {
+              if (quranProvider.isOfflineMode && _isOnline) {
+                return TextButton(
+                  onPressed: () async {
+                    try {
+                      final translationProvider = context.read<TranslationProvider>();
+                      await quranProvider.loadAyahs(widget.surahId, translationProvider: translationProvider);
+                      ToastService.showSuccess('Data refreshed');
+                    } catch (e) {
+                      ToastService.showError('Failed to refresh data');
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                  ),
+                  child: Text(
+                    'Refresh',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 );
               }
               return const SizedBox.shrink();
