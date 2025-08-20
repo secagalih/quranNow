@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/theme_provider.dart';
 import '../providers/translation_provider.dart';
 import '../providers/quran_data_provider.dart';
+import '../providers/audio_provider.dart';
 import '../services/local_storage_service.dart';
 import '../services/toast_service.dart';
 import '../constants/app_colors.dart';
@@ -63,6 +64,39 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: const Text('1.0x'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {},
+              ),
+              Consumer<AudioProvider>(
+                builder: (context, audioProvider, child) {
+                  return FutureBuilder<Map<String, dynamic>>(
+                    future: audioProvider.getAudioCacheStats(),
+                    builder: (context, snapshot) {
+                      final stats = snapshot.data ?? {'totalFiles': 0, 'totalSize': 0, 'usagePercentage': 0};
+                      final totalSizeMB = (stats['totalSize'] as int) / (1024 * 1024);
+                      
+                      return ListTile(
+                        leading: const Icon(Icons.offline_pin, color: AppColors.primary),
+                        title: const Text('Audio Cache'),
+                        subtitle: Text('${stats['totalFiles']} files, ${totalSizeMB.toStringAsFixed(1)} MB'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${stats['usagePercentage']}%',
+                              style: TextStyle(
+                                color: stats['usagePercentage'] > 80 ? Colors.orange : Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_ios, size: 16),
+                          ],
+                        ),
+                        onTap: () => _showAudioCacheDialog(context, audioProvider),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
@@ -270,5 +304,68 @@ class SettingsScreen extends StatelessWidget {
         ToastService.showError('Failed to clear cache: $e');
       }
     }
+  }
+
+  void _showAudioCacheDialog(BuildContext context, AudioProvider audioProvider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Audio Cache Management'),
+          content: FutureBuilder<Map<String, dynamic>>(
+            future: audioProvider.getAudioCacheStats(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              final stats = snapshot.data ?? {'totalFiles': 0, 'totalSize': 0, 'usagePercentage': 0};
+              final totalSizeMB = (stats['totalSize'] as int) / (1024 * 1024);
+              final maxSizeMB = (stats['maxSize'] as int) / (1024 * 1024);
+              
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Cached Files: ${stats['totalFiles']}'),
+                  const SizedBox(height: 8),
+                  Text('Total Size: ${totalSizeMB.toStringAsFixed(1)} MB / ${maxSizeMB.toStringAsFixed(1)} MB'),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: stats['usagePercentage'] / 100,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      stats['usagePercentage'] > 80 ? Colors.orange : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Audio files are automatically downloaded when you play them for the first time. '
+                    'They are stored locally for offline playback.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await audioProvider.clearAudioCache();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Clear Cache'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

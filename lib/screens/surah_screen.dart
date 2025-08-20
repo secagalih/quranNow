@@ -411,13 +411,14 @@ class _SurahScreenState extends State<SurahScreen> {
             final audioUrl =
                 'https://equran.nos.wjv-1.neo.id/audio-partial/$qariName/${widget.surahId.toString().padLeft(3, '0')}${ayahNumber.toString().padLeft(3, '0')}.mp3';
             final isCurrentAyahPlaying = audioProvider.currentAyahKey == ayahKey;
+            final isDownloading = isCurrentAyahPlaying && audioProvider.isDownloading;
 
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  onPressed: audioProvider.isLoading || audioProvider.isProcessing
-                      ? null // Disable button during loading or processing
+                  onPressed: audioProvider.isLoading || audioProvider.isProcessing || isDownloading
+                      ? null // Disable button during loading, processing, or downloading
                       : () {
                           if (isCurrentAyahPlaying && audioProvider.isPlaying) {
                             audioProvider.pauseAudio();
@@ -425,7 +426,7 @@ class _SurahScreenState extends State<SurahScreen> {
                             audioProvider.playAudio(audioUrl, ayahKey);
                           }
                         },
-                  icon: isCurrentAyahPlaying && audioProvider.isLoading
+                  icon: isCurrentAyahPlaying && (audioProvider.isLoading || isDownloading)
                       ? SizedBox(
                           width: 40,
                           height: 40,
@@ -443,10 +444,11 @@ class _SurahScreenState extends State<SurahScreen> {
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 8),
+                // Offline indicator and download button
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  enabled: !(isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing)), // Disable when playing, loading, or processing
+                  enabled: !(isCurrentAyahPlaying && (audioProvider.isPlaying || audioProvider.isLoading || audioProvider.isProcessing || isDownloading)), // Disable when playing, loading, processing, or downloading
                   onSelected: (qariCode) {
                     audioProvider.setQariForAyah(ayahKey, qariCode);
                   },

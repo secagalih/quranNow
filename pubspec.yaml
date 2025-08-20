@@ -48,6 +48,9 @@ dependencies:
   # Local storage
   shared_preferences: ^2.2.2
   
+  # File handling and path management
+  path_provider: ^2.1.2
+  
   # Audio player for Quran recitation
   audioplayers: ^5.2.1
   

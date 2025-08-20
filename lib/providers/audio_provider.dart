@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../services/toast_service.dart';
+import '../services/audio_cache_service.dart';
 
 class AudioProvider extends ChangeNotifier {
   AudioPlayer? _audioPlayer;
   bool _isPlaying = false;
   bool _isLoading = false;
+  bool _isDownloading = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   String? _currentAudioUrl;
@@ -13,6 +15,7 @@ class AudioProvider extends ChangeNotifier {
   String _selectedQari = '01'; // Default to Abdullah Al-Juhany
   final Map<String, String> _ayahQariMap = {}; // Store Qari selection per ayah
   bool _isProcessing = false; // Prevent multiple simultaneous operations
+  AudioCacheService? _audioCacheService;
 
   // Available Qari options - using equran.id API format
   final Map<String, String> _availableQari = {
@@ -25,6 +28,7 @@ class AudioProvider extends ChangeNotifier {
 
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
+  bool get isDownloading => _isDownloading;
   bool get isProcessing => _isProcessing;
   Duration get position => _position;
   Duration get duration => _duration;
@@ -35,6 +39,11 @@ class AudioProvider extends ChangeNotifier {
 
   AudioProvider() {
     _initAudioPlayer();
+    _initAudioCacheService();
+  }
+
+  Future<void> _initAudioCacheService() async {
+    _audioCacheService = await AudioCacheService.getInstance();
   }
 
   void _initAudioPlayer() {
@@ -119,24 +128,51 @@ class AudioProvider extends ChangeNotifier {
       _currentAyahKey = ayahKey;
       notifyListeners();
 
+      // Check if audio is cached, if not download it
+      String finalAudioUrl = audioUrl;
+      if (_audioCacheService != null) {
+        final isCached = await _audioCacheService!.isAudioCached(audioUrl);
+        if (!isCached) {
+          _isDownloading = true;
+          notifyListeners();
+          
+          try {
+            final downloadSuccess = await _audioCacheService!.downloadAndCacheAudio(audioUrl);
+            if (downloadSuccess) {
+              finalAudioUrl = await _audioCacheService!.getAudioUrl(audioUrl);
+              ToastService.showSuccess('Audio downloaded for offline playback');
+            } else {
+              // Continue with online playback if download fails
+              print('Download failed, using online audio');
+            }
+          } catch (downloadError) {
+            // Handle download error and continue with online playback
+            print('Download error: $downloadError');
+            print('Continuing with online audio playback');
+          } finally {
+            // Always reset downloading state
+            _isDownloading = false;
+            notifyListeners();
+          }
+        } else {
+          // Use cached audio
+          finalAudioUrl = await _audioCacheService!.getAudioUrl(audioUrl);
+        }
+      }
+
       // Add a small delay to prevent rapid clicks
       await Future.delayed(const Duration(milliseconds: 100));
 
       // Play the new audio
-      print('Playing new audio: $audioUrl');
-      await _audioPlayer!.play(UrlSource(audioUrl));
+      print('Playing audio: $finalAudioUrl');
+      await _audioPlayer!.play(UrlSource(finalAudioUrl));
       
       // Reset processing flag after successful play
       _isProcessing = false;
     } catch (e) {
-      // Handle error
+      // Handle error and reset all states
       print('Audio playback error: $e');
-      _isLoading = false;
-      _isPlaying = false;
-      _currentAudioUrl = null;
-      _currentAyahKey = null;
-      _isProcessing = false;
-      notifyListeners();
+      _resetAudioStates();
       
       // Show toast error
       String errorMessage = 'Failed to play audio';
@@ -212,6 +248,57 @@ class AudioProvider extends ChangeNotifier {
       _ayahQariMap[ayahKey] = qariCode;
       notifyListeners();
     }
+  }
+
+  // Audio cache management methods
+  Future<bool> isAudioCached(String audioUrl) async {
+    if (_audioCacheService != null) {
+      return await _audioCacheService!.isAudioCached(audioUrl);
+    }
+    return false;
+  }
+
+  Future<void> downloadAudioForOffline(String audioUrl) async {
+    if (_audioCacheService != null) {
+      final success = await _audioCacheService!.downloadAndCacheAudio(audioUrl);
+      if (success) {
+        ToastService.showSuccess('Audio downloaded for offline playback');
+      } else {
+        ToastService.showError('Failed to download audio');
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> getAudioCacheStats() async {
+    if (_audioCacheService != null) {
+      return await _audioCacheService!.getCacheStats();
+    }
+    return {'totalFiles': 0, 'totalSize': 0, 'maxSize': 0, 'usagePercentage': 0};
+  }
+
+  Future<void> clearAudioCache() async {
+    if (_audioCacheService != null) {
+      await _audioCacheService!.clearCache();
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeAudioFromCache(String audioUrl) async {
+    if (_audioCacheService != null) {
+      await _audioCacheService!.removeFromCache(audioUrl);
+      notifyListeners();
+    }
+  }
+
+  // Reset all audio states
+  void _resetAudioStates() {
+    _isLoading = false;
+    _isPlaying = false;
+    _isDownloading = false;
+    _currentAudioUrl = null;
+    _currentAyahKey = null;
+    _isProcessing = false;
+    notifyListeners();
   }
 
   @override
